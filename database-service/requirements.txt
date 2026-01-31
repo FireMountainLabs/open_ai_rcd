@@ -4,4 +4,4 @@
 # cryptography, gunicorn, etc.) are inherited from the base image
 
 # Additional HTTP client for async operations
-httpx==0.25.2
+httpx==0.28.1
