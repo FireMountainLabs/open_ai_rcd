@@ -31,4 +31,4 @@ cryptography>=42.0.5
 psutil==5.9.6
 
 # Production WSGI Server
-gunicorn==21.2.0
+gunicorn==24.1.1
