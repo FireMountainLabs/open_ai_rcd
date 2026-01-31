@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Risks, Controls, and Definitions Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tufte.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- Configuration from dashboard_config.yaml -->
+    <script>
+        window.DashboardConfig = {
+            visualization: {{ viz_config | tojson }},
+            ui: {{ ui_config | tojson }},
+            search: {{ search_config | tojson }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/config/dashboard-config.js') }}"></script>
+    <!-- Modular Dashboard Architecture -->
+    <script src="{{ url_for('static', filename='js/modules/BaseModule.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DataManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DefinitionHoverManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardCore.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardTreeRenderer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardMetrics.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/StatusMessageManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/SaveStatusManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DraftManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/ScenarioManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardScenarios.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardSearch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardRiskViews.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardGapsView.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardNetwork.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardControls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardEventHandlers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <style>
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .header-title {
+            flex: 1;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: 2rem;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+        
+        .user-role {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .user-role.admin {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .user-role.user {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .logout-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .logout-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .logout-button:active {
+            transform: translateY(0);
+        }
+        
+        .admin-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+        
+        .admin-link:hover {
+            background: #218838;
+        }
+        
+        .change-password-link {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+        
+        .change-password-link:hover {
+            background: #138496;
+        }
+        
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .user-menu {
+                margin-left: 0;
+                margin-top: 1rem;
+                justify-content: flex-end;
+            }
+        }
+        
+        /* Animation for metric change indicators */
+        @keyframes slideInFadeOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            90% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+        
+        .metric-change-indicator {
+            animation: slideInFadeOut 2s ease-out forwards;
+        }
+        
+        /* Ensure metric values are black at rest */
+        .metric-value {
+            color: #212529 !important;
+        }
+        
+        /* Subtle highlight for capabilities with unique controls */
+        .capability-box.unique-controls {
+            border: 1px solid #ffe08a !important;
+            box-shadow: 0 0 6px rgba(255, 193, 7, 0.15) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header following Tufte's principles -->
+        <header class="main-header">
+            <div class="header-top">
+                <div class="header-title">
+                    <h1>AI Risks, Controls, and Definitions Viewer</h1>
+                    <p class="subtitle">Interactive Visualization of Risk, Control, and Assessment Relationships</p>
+                </div>
+                {% if enable_auth and user %}
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">{{ user.username }}</span>
+                        {% if user.is_admin %}
+                        <span class="user-role admin">Admin</span>
+                        {% else %}
+                        <span class="user-role user">User</span>
+                        {% endif %}
+                    </div>
+                    {% if user.is_admin %}
+                    <a href="/admin" class="admin-link">Admin Panel</a>
+                    {% endif %}
+                    <button class="logout-button" onclick="logout()">Logout</button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="data-status">
+                <h3 class="sources-header">
+                    <span class="sources-toggle-icon">▼</span>
+                    Sources
+                </h3>
+                <div class="status-items-container">
+                    <div class="status-item">
+                        <span class="status-label">Risks:</span>
+                        <span id="risksLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="risksVersion">-</span>)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Controls:</span>
+                        <span id="controlsLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="controlsVersion">-</span>)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Questions:</span>
+                        <span id="questionsLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="questionsVersion">-</span>)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Definitions:</span>
+                        <span id="definitionsLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="definitionsVersion">-</span>)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search risks, controls, or questions..." class="search-input">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </header>
+
+        <!-- Navigation tabs -->
+        <nav class="tab-navigation">
+            <button class="tab-button active" data-tab="overview">Overview</button>
+            <button class="tab-button" data-tab="risks">Risks</button>
+            <button class="tab-button" data-tab="controls">Controls</button>
+            <button class="tab-button" data-tab="questions">Questions</button>
+            <button class="tab-button" data-tab="definitions">Definitions</button>
+            <button class="tab-button" data-tab="capabilities">Capability Configuration</button>
+        </nav>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <section class="overview-summary">
+                <h2>Framework Overview</h2>
+                <div class="overview-grid">
+                    <div class="overview-card clickable-overview-card" data-tab="risks">
+                        <h3>Total Risks</h3>
+                        <div class="overview-stat">
+                            <span class="overview-number" id="totalRisks">-</span>
+                            <span class="overview-label">identified risks</span>
+                        </div>
+                        <div class="overview-detail" id="riskCoverage">-</div>
+                        <div class="click-hint">Click to view risks</div>
+                    </div>
+                    <div class="overview-card clickable-overview-card" data-tab="controls">
+                        <h3>Total Controls</h3>
+                        <div class="overview-stat">
+                            <span class="overview-number" id="totalControls">-</span>
+                            <span class="overview-label">control measures</span>
+                        </div>
+                        <div class="overview-detail" id="controlUtilization">-</div>
+                        <div class="click-hint">Click to view controls</div>
+                    </div>
+                    <div class="overview-card clickable-overview-card" data-tab="questions">
+                        <h3>Assessment Questions</h3>
+                        <div class="overview-stat">
+                            <span class="overview-number" id="totalQuestions">-</span>
+                            <span class="overview-label">evaluation questions</span>
+                        </div>
+                        <div class="overview-detail" id="questionCoverage">-</div>
+                        <div class="click-hint">Click to view questions</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="gaps-details">
+                <h2>Critical Coverage Gaps</h2>
+                <div class="gaps-grid">
+                    <div class="gap-card critical clickable-gap-card active" data-gap-type="risks">
+                        <div class="gap-card-header">
+                            <h3>Unmapped Risks</h3>
+                            <span class="click-hint">Click to view</span>
+                        </div>
+                        <div class="gap-stat">
+                            <span class="gap-number" id="unmappedRisksCount">-</span>
+                            <span class="gap-label">risks without controls</span>
+                        </div>
+                        <div class="gap-percentage" id="riskCoveragePct">-</div>
+                    </div>
+                    <div class="gap-card warning clickable-gap-card" data-gap-type="controls">
+                        <div class="gap-card-header">
+                            <h3>Unmapped Controls</h3>
+                            <span class="click-hint">Click to view</span>
+                        </div>
+                        <div class="gap-stat">
+                            <span class="gap-number" id="unmappedControlsCount">-</span>
+                            <span class="gap-label">controls not addressing risks</span>
+                        </div>
+                        <div class="gap-percentage" id="controlUtilizationPct">-</div>
+                    </div>
+                    <div class="gap-card info clickable-gap-card" data-gap-type="questions">
+                        <div class="gap-card-header">
+                            <h3>Unmapped Questions</h3>
+                            <span class="click-hint">Click to view</span>
+                        </div>
+                        <div class="gap-stat">
+                            <span class="gap-number" id="unmappedQuestionsCount">-</span>
+                            <span class="gap-label">questions not mapped to risks</span>
+                        </div>
+                        <div class="gap-percentage" id="questionCoveragePct">-</div>
+                    </div>
+                    <div class="gap-card critical clickable-gap-card" data-gap-type="risks-without-questions">
+                        <div class="gap-card-header">
+                            <h3>Risks Without Questions</h3>
+                            <span class="click-hint">Click to view</span>
+                        </div>
+                        <div class="gap-stat">
+                            <span class="gap-number" id="risksWithoutQuestionsCount">-</span>
+                            <span class="gap-label">risks not addressed by questions</span>
+                        </div>
+                        <div class="gap-percentage" id="risksWithoutQuestionsPct">-</div>
+                    </div>
+                    <div class="gap-card warning clickable-gap-card" data-gap-type="controls-without-questions">
+                        <div class="gap-card-header">
+                            <h3>Controls Without Questions</h3>
+                            <span class="click-hint">Click to view</span>
+                        </div>
+                        <div class="gap-stat">
+                            <span class="gap-number" id="controlsWithoutQuestionsCount">-</span>
+                            <span class="gap-label">controls not addressed by questions</span>
+                        </div>
+                        <div class="gap-percentage" id="controlsWithoutQuestionsPct">-</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="gaps-tables">
+                
+                <div id="gapsRisks" class="gaps-tab-content active">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Risk ID</th>
+                                    <th>Risk Title</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unmappedRisksTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="gapsControls" class="gaps-tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Control ID</th>
+                                    <th>Control Title</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unmappedControlsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="gapsQuestions" class="gaps-tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Question ID</th>
+                                    <th>Question Text</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unmappedQuestionsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="gapsRisksWithoutQuestions" class="gaps-tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Risk ID</th>
+                                    <th>Risk Title</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="risksWithoutQuestionsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div id="gapsControlsWithoutQuestions" class="gaps-tab-content">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Control ID</th>
+                                    <th>Control Title</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="controlsWithoutQuestionsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Risks Tab -->
+        <div id="risks" class="tab-content">
+            <section class="data-table">
+                <h2>Risk Inventory</h2>
+                <div class="table-controls">
+                </div>
+                <div class="table-container">
+                    <table id="risksTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Risk ID</th>
+                                <th>Title</th>
+                                <th>Controls</th>
+                                <th>Questions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Controls Tab -->
+        <div id="controls" class="tab-content">
+            <section class="data-table">
+                <h2>Control Framework</h2>
+                <div class="table-controls">
+                </div>
+                <div class="table-container">
+                    <table id="controlsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Control ID</th>
+                                <th>Title</th>
+                                <th>Domain</th>
+                                <th>Risks</th>
+                                <th>Questions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Questions Tab -->
+        <div id="questions" class="tab-content">
+            <section class="data-table">
+                <h2>Assessment Questions</h2> <!-- Updated -->
+                <div class="table-controls">
+                    <select id="questionCategoryFilter">
+                        <option value="">All Managing Roles</option>
+                    </select>
+                </div>
+                <div class="table-container">
+                    <table id="questionsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Question ID</th>
+                                <th>Question Text</th>
+                                <th>Category</th>
+                                <th>Managing Role</th>
+                                <th>Risks</th>
+                                <th>Controls</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Definitions Tab -->
+        <div id="definitions" class="tab-content">
+            <section class="data-table">
+                <h2>Definitions & Terminology</h2>
+                <div class="table-controls">
+                    <select id="definitionCategoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="alphabet-filter">
+                    <span class="filter-label">Filter by letter:</span>
+                    <div class="letter-links">
+                        <a href="#" class="letter-link active" data-letter="">All</a>
+                        <a href="#" class="letter-link" data-letter="A">A</a>
+                        <a href="#" class="letter-link" data-letter="B">B</a>
+                        <a href="#" class="letter-link" data-letter="C">C</a>
+                        <a href="#" class="letter-link" data-letter="D">D</a>
+                        <a href="#" class="letter-link" data-letter="E">E</a>
+                        <a href="#" class="letter-link" data-letter="F">F</a>
+                        <a href="#" class="letter-link" data-letter="G">G</a>
+                        <a href="#" class="letter-link" data-letter="H">H</a>
+                        <a href="#" class="letter-link" data-letter="I">I</a>
+                        <a href="#" class="letter-link" data-letter="J">J</a>
+                        <a href="#" class="letter-link" data-letter="K">K</a>
+                        <a href="#" class="letter-link" data-letter="L">L</a>
+                        <a href="#" class="letter-link" data-letter="M">M</a>
+                        <a href="#" class="letter-link" data-letter="N">N</a>
+                        <a href="#" class="letter-link" data-letter="O">O</a>
+                        <a href="#" class="letter-link" data-letter="P">P</a>
+                        <a href="#" class="letter-link" data-letter="Q">Q</a>
+                        <a href="#" class="letter-link" data-letter="R">R</a>
+                        <a href="#" class="letter-link" data-letter="S">S</a>
+                        <a href="#" class="letter-link" data-letter="T">T</a>
+                        <a href="#" class="letter-link" data-letter="U">U</a>
+                        <a href="#" class="letter-link" data-letter="V">V</a>
+                        <a href="#" class="letter-link" data-letter="W">W</a>
+                        <a href="#" class="letter-link" data-letter="X">X</a>
+                        <a href="#" class="letter-link" data-letter="Y">Y</a>
+                        <a href="#" class="letter-link" data-letter="Z">Z</a>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="definitionsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Term</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Capability Planning Tab -->
+        <!-- Capabilities Tab -->
+        <div id="capabilities" class="tab-content">
+            <section class="capabilities-tree">
+                <h2>Capability and Control Configurator</h2>
+                <p>Interactive visualization of capabilities, controls, and risks hierarchy</p>
+                
+                <!-- Simplified Capability Metrics -->
+                <div class="capability-metrics" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                    <div class="metric-card" style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #6c757d;">
+                        <h3 style="font-size: 0.9rem; color: #6c757d; margin: 0 0 0.5rem 0;">Capabilities</h3>
+                        <div class="metric-value" id="metric-total-capabilities" style="font-size: 2.5rem; font-weight: bold; color: #212529; margin: 0.5rem 0;">-</div>
+                        <div class="metric-label" style="font-size: 0.85rem; color: #6c757d;">in system</div>
+                    </div>
+                    <div class="metric-card clickable-metric" data-metric-type="assigned-controls" style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #0d6efd; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" title="Click to view details - Controls mapped and unmapped to capabilities">
+                        <h3 style="font-size: 0.9rem; color: #0d6efd; margin: 0 0 0.5rem 0;">Assigned Controls</h3>
+                        <div class="metric-value" id="metric-assigned-controls" style="font-size: 2.5rem; font-weight: bold; color: #212529; margin: 0.5rem 0;">-</div>
+                        <div class="metric-label" style="font-size: 0.85rem; color: #6c757d;">mapped to capabilities</div>
+                    </div>
+                    <div class="metric-card highlight clickable-metric" data-metric-type="active-controls" style="background: #e7f5ff; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #00b0f0; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" title="Click to view details - Controls activated from selected capabilities">
+                        <h3 style="font-size: 0.9rem; color: #00b0f0; margin: 0 0 0.5rem 0;">Active Controls</h3>
+                        <div class="metric-value" id="metric-active-controls" style="font-size: 2.5rem; font-weight: bold; color: #212529; margin: 0.5rem 0;">0</div>
+                        <div class="metric-label" style="font-size: 0.85rem; color: #6c757d;">from selected capabilities</div>
+                    </div>
+                    <div class="metric-card warning clickable-metric" data-metric-type="partially-covered" style="background: #fff8e1; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #ffc107; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" title="Click to view details - Risks with some but not all required controls active">
+                        <h3 style="font-size: 0.9rem; color: #ffc107; margin: 0 0 0.5rem 0;">Partially Covered Risks</h3>
+                        <div class="metric-value" id="metric-partially-covered-risks" style="font-size: 2.5rem; font-weight: bold; color: #212529; margin: 0.5rem 0;">0</div>
+                        <div class="metric-label" style="font-size: 0.85rem; color: #6c757d;">with some controls active</div>
+                    </div>
+                    <div class="metric-card critical clickable-metric" data-metric-type="exposed-risks" style="background: #fff5f5; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #dc3545; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" title="Click to view details - Risks with zero required controls active">
+                        <h3 style="font-size: 0.9rem; color: #dc3545; margin: 0 0 0.5rem 0;">Exposed Risks</h3>
+                        <div class="metric-value" id="metric-exposed-risks" style="font-size: 2.5rem; font-weight: bold; color: #212529; margin: 0.5rem 0;">-</div>
+                        <div class="metric-label" style="font-size: 0.85rem; color: #6c757d;">without active controls</div>
+                    </div>
+                </div>
+
+                <!-- Scenario Management Toolbar -->
+                <div class="scenario-toolbar" style="display: flex; gap: 1rem; align-items: center; padding: 1rem; background: #f8f9fa; border-radius: 8px; margin-bottom: 2rem;">
+                    <!-- Worksheet selector -->
+                    <div class="worksheet-selector-group" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label for="scenario-selector" style="font-weight: 500; color: #495057;">Worksheet:</label>
+                        <select id="scenario-selector" style="padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.95rem; min-width: 200px;">
+                            <option value="">-- Select Worksheet --</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Save status icon with tooltip -->
+                    <div class="save-status-icon" id="save-status-icon" title="No changes" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; cursor: help; background: transparent; border: none; padding: 0;">
+                        <span class="status-indicator" style="font-size: 1.2rem; transition: all 0.3s ease;"></span>
+                    </div>
+                    
+                    <!-- File menu for CRUD operations -->
+                    <div class="dropdown" style="position: relative;">
+                        <button id="file-menu-btn" class="toolbar-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;">
+                            <span>📁 File</span>
+                            <span class="dropdown-arrow" style="font-size: 0.7rem;">▼</span>
+                        </button>
+                        <div id="file-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 0.25rem; background: white; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); min-width: 200px; z-index: 1000;">
+                            <button id="new-scenario-btn" class="menu-item" style="width: 100%; padding: 0.75rem 1rem; background: none; border: none; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #f0f0f0;">
+                                <span>📄</span><span>New Worksheet</span>
+                            </button>
+                            <button id="save-scenario-btn" class="menu-item" style="width: 100%; padding: 0.75rem 1rem; background: none; border: none; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; border-bottom: 1px solid #f0f0f0;">
+                                <span>💾</span><span>Save Worksheet</span>
+                            </button>
+                            <button id="delete-scenario-btn" class="menu-item" style="width: 100%; padding: 0.75rem 1rem; background: none; border: none; text-align: left; cursor: not-allowed; display: flex; align-items: center; gap: 0.5rem; opacity: 0.5;" disabled>
+                                <span>🗑️</span><span>Delete Worksheet</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Individual action buttons -->
+                    <button id="activate-all-btn" class="toolbar-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;">
+                        <span>✅</span><span>Activate All</span>
+                    </button>
+                    
+                    <button id="clear-all-btn" class="toolbar-button" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;">
+                        <span>🗑️</span><span>Clear All</span>
+                    </button>
+                    
+                    <button id="export-pdf-btn" class="toolbar-button" onclick="window.print()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; cursor: pointer; font-size: 0.9rem; transition: all 0.2s ease;">
+                        <span>📄</span><span>Export PDF</span>
+                    </button>
+                </div>
+                
+                <div class="debug-controls">
+                    <div style="display: inline-block; position: relative;">
+                        <input type="text" id="search-filter" placeholder="Search capabilities..." style="padding: 8px 30px 8px 8px; margin: 0 10px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                        <button id="clear-search" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 16px; color: #999;">×</button>
+                    </div>
+                    <select id="capability-type-filter">
+                        <option value="">All Capabilities</option>
+                        <option value="technical">Technical Only</option>
+                        <option value="non-technical">Non-Technical Only</option>
+                    </select>
+                    <select id="domain-filter">
+                        <option value="">All Domains</option>
+                    </select>
+                    <select id="sort-filter">
+                        <option value="type-name">Type, then Name</option>
+                        <option value="name">Name A-Z</option>
+                        <option value="name-desc">Name Z-A</option>
+                        <option value="domain">Domain</option>
+                        <option value="controls">Most Controls</option>
+                        <option value="risks">Most Risks</option>
+                        <option value="unique">Most Unique Controls</option>
+                        <option value="active">Active Status</option>
+                    </select>
+                </div>
+                
+                <div id="status-message" style="display: none; padding: 8px 36px 8px 12px; background: #e3f2fd; border-radius: 4px; margin: 10px 0; text-align: left; font-weight: normal; max-width: 100%; box-sizing: border-box; position: relative;"></div>
+                
+                <div class="tree-container">
+                    <div class="loading" id="loading" style="display: none;">Loading capability data...</div>
+                    <div class="error" id="error" style="display: none;"></div>
+                    <div id="tree-visualization" class="tree-visualization"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Detail Modal -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="modalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Logout failed');
+                    // Still redirect to login even if logout fails
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Still redirect to login even if logout fails
+                window.location.href = '/login';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# Development requirements
+# Testing and code quality tools
+
+# Include common test requirements
+-r test.txt
+
+# Development utilities
+python-dotenv>=1.0.0

@@ -1,0 +1,798 @@
+/* Tufte-inspired CSS following Beautiful Evidence principles */
+
+/* Typography - High contrast, readable fonts */
+body {
+    font-family: "ETBembo", "Palatino Linotype", "Book Antiqua", Palatino, serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: #111;
+    background-color: #fffff8;
+    margin: 0;
+    padding: 0;
+}
+
+/* Headers with proper hierarchy */
+h1 {
+    font-size: 2.2em;
+    font-weight: 400;
+    margin: 0.5em 0 0.2em 0;
+    color: #111;
+    border-bottom: 1px solid #333;
+    padding-bottom: 0.2em;
+}
+
+h2 {
+    font-size: 1.8em;
+    font-weight: 400;
+    margin: 1.5em 0 0.5em 0;
+    color: #333;
+}
+
+h3 {
+    font-size: 1.4em;
+    font-weight: 400;
+    margin: 1.2em 0 0.4em 0;
+    color: #444;
+}
+
+/* Links - subtle but clear */
+a {
+    color: #1a73e8;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Container with proper margins */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2em;
+}
+
+/* Main header styling */
+.main-header {
+    margin: 2em 0 3em 0;
+    text-align: center;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    color: #666;
+    margin: 0.5em 0 2em 0;
+    font-style: italic;
+}
+
+/* Search styling */
+.search-container {
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.8em 1em;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    background-color: #fff;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+.search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.search-result-item {
+    padding: 0.8em 1em;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background-color: #f5f5f5;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+/* Tab navigation */
+.tab-navigation {
+    display: flex;
+    border-bottom: 2px solid #333;
+    margin-bottom: 2em;
+    gap: 0;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 1em 2em;
+    font-size: 1em;
+    font-family: inherit;
+    cursor: pointer;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.tab-button:hover {
+    color: #333;
+    background-color: #f8f8f8;
+}
+
+.tab-button.active {
+    color: #111;
+    border-bottom-color: #1a73e8;
+    font-weight: 500;
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+    margin-bottom: 3em;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Sparkline styling - minimal, data-focused */
+.sparkline-section {
+    margin: 2em 0;
+}
+
+.sparkline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2em;
+    margin: 1.5em 0;
+}
+
+.sparkline-card {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 1.5em;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.sparkline-card h3 {
+    margin: 0 0 1em 0;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.sparkline {
+    height: 60px;
+    width: 100%;
+}
+
+/* Small multiples - Tufte's signature technique */
+.small-multiples {
+    margin: 3em 0;
+}
+
+.multiples-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5em;
+    margin: 1.5em 0;
+}
+
+.multiple-item {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 1em;
+    text-align: center;
+}
+
+.multiple-item h4 {
+    margin: 0 0 0.5em 0;
+    font-size: 1em;
+    color: #333;
+}
+
+/* Data tables - clean, minimal design */
+.data-table {
+    margin: 2em 0;
+}
+
+.table-controls {
+    display: flex;
+    gap: 1em;
+    margin-bottom: 1em;
+    flex-wrap: wrap;
+}
+
+.table-controls select {
+    padding: 0.5em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: inherit;
+    background: white;
+}
+
+.table-container {
+    overflow-x: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+th {
+    background-color: #f8f8f8;
+    padding: 0.8em 1em;
+    text-align: left;
+    font-weight: 500;
+    color: #333;
+    border-bottom: 2px solid #ddd;
+}
+
+td {
+    padding: 0.8em 1em;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+
+tr:hover {
+    background-color: #f8f8f8;
+}
+
+/* Network visualization */
+.network-visualization {
+    margin: 2em 0;
+}
+
+.network-controls {
+    display: flex;
+    gap: 1em;
+    margin-bottom: 1em;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.6em 1.2em;
+    border: 1px solid #ccc;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    background-color: #f5f5f5;
+    border-color: #999;
+}
+
+.btn.active {
+    background-color: #1a73e8;
+    color: white;
+    border-color: #1a73e8;
+}
+
+.network-container {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+}
+
+/* Modal styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 2em;
+    border-radius: 4px;
+    width: 80%;
+    max-width: 800px;
+    max-height: 80%;
+    overflow-y: auto;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 1em;
+    top: 1em;
+    font-size: 1.5em;
+    cursor: pointer;
+    color: #999;
+}
+
+.close:hover {
+    color: #333;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 0 1em;
+    }
+    
+    .tab-navigation {
+        flex-wrap: wrap;
+    }
+    
+    .tab-button {
+        padding: 0.8em 1em;
+        font-size: 0.9em;
+    }
+    
+    .sparkline-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+    }
+    
+    .network-controls {
+        flex-direction: column;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+        padding: 1em;
+    }
+}
+
+/* Debug Tree / Capabilities Tab Styles */
+.debug-controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    overflow-x: hidden;
+}
+
+.debug-controls button {
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.debug-controls button:hover {
+    background: #f0f0f0;
+}
+
+.debug-controls button.primary {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.debug-controls button.primary:hover {
+    background: #0056b3;
+}
+
+.debug-controls select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.debug-controls select:hover {
+    border-color: #007bff;
+}
+
+.debug-info {
+    display: flex;
+    gap: 2rem;
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.debug-info-item {
+    text-align: center;
+    min-width: 120px;
+}
+
+.debug-info-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.debug-info-value {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #333;
+}
+
+.tree-container {
+    margin: 20px 0;
+    min-height: 400px;
+}
+
+.tree-visualization {
+    width: 100%;
+    height: 600px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.1em;
+}
+
+.error {
+    text-align: center;
+    padding: 40px;
+    color: #d32f2f;
+    background: #ffebee;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+/* Modal styles for capability details */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: none;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+/* Capability Detail Modal */
+.capability-detail h2 {
+    margin-top: 0;
+    color: #2c3e50;
+}
+
+.capability-meta {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.capability-meta .badge {
+    padding: 0.25rem 0.75rem;
+    background: #e3f2fd;
+    color: #1976d2;
+    border-radius: 12px;
+    font-size: 0.875rem;
+}
+
+.detail-section {
+    margin: 1.5rem 0;
+}
+
+.detail-section h3 {
+    color: #495057;
+    margin-bottom: 0.75rem;
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 0.5rem;
+}
+
+.detail-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.detail-section li {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    background: #f8f9fa;
+    border-left: 3px solid #007bff;
+    border-radius: 4px;
+}
+
+.no-controls-message {
+    padding: 1rem;
+    background: #f8f9fa;
+    border-left: 3px solid #6c757d;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+}
+
+.no-controls-message p {
+    margin: 0;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Worksheet menu styles */
+#worksheet-menu button:hover:not(:disabled) {
+    background: #f8f9fa !important;
+}
+
+#worksheet-menu button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Print styles */
+@media print {
+    /* Hide navigation and controls */
+    .tab-navigation,
+    .search-container,
+    .network-controls,
+    .table-controls,
+    .scenario-toolbar,
+    .debug-controls,
+    .debug-info {
+        display: none !important;
+    }
+    
+    .tab-content {
+        display: block !important;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+    
+    /* Optimize capability tree for print */
+    .tree-container {
+        column-count: 2;
+        column-gap: 20px;
+    }
+    
+    /* Ensure metrics are prominent */
+    .capability-metrics {
+        page-break-after: avoid;
+        margin-bottom: 20px;
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 1rem !important;
+    }
+    
+    /* First row: Total, Capability, Active */
+    /* Second row: Partial, Exposed, (empty) */
+    
+    /* Add page breaks between sections */
+    .capabilities-tree {
+        page-break-before: always;
+    }
+    
+    /* Prevent capability cards from breaking across pages */
+    .capability-column {
+        page-break-inside: avoid;
+    }
+    
+    /* Ensure metric cards print properly */
+    .metric-card {
+        page-break-inside: avoid;
+        border: 1px solid #ddd !important;
+    }
+}
+
+/* Save Status Indicator Styles */
+.save-status {
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.save-status.pending {
+    color: #856404;
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+}
+
+.save-status.saving {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+}
+
+.save-status.saved {
+    color: #155724;
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+}
+
+.save-status.error {
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+}
+
+/* Icon-based Save Status Indicator */
+.save-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: help;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.save-status-icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.status-indicator {
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.status-indicator.saved::before {
+    content: '✓';
+    color: #28a745;
+}
+
+.status-indicator.saving::before {
+    content: '⟳';
+    color: #007bff;
+    animation: spin 1s linear infinite;
+}
+
+.status-indicator.error::before {
+    content: '⚠';
+    color: #ffc107;
+}
+
+.status-indicator.none::before {
+    content: '';
+}
+
+.status-indicator.unsaved::before {
+    content: '●';
+    color: #ffc107;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Toolbar Buttons */
+.toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    color: #495057;
+}
+
+.toolbar-button:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    transform: translateY(-1px);
+}
+
+.toolbar-button:active {
+    background: #dee2e6;
+    transform: translateY(0);
+}
+
+.toolbar-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.toolbar-button:disabled:hover {
+    background: #f8f9fa;
+    border-color: #dee2e6;
+    transform: none;
+}
+
+/* Dropdown Menu Items */
+.menu-item {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s ease;
+    color: #495057;
+}
+
+.menu-item:hover {
+    background-color: #f8f9fa;
+}
+
+.menu-item:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.menu-item:disabled:hover {
+    background-color: transparent;
+}

@@ -1,0 +1,77 @@
+# Development Docker Compose for AI_RCD
+
+services:
+  # Base image - built locally, used by all services
+  base:
+    build:
+      context: .
+      dockerfile: ./base/Dockerfile
+    image: dashboard_zero-base:latest
+    # Base service doesn't run, it's just a build dependency
+
+  # Database Service - Provides data API
+  database-service:
+    build:
+      context: .
+      dockerfile: ./database-service/Dockerfile
+    image: dashboard_zero-database-service:latest
+    container_name: aiml-database-service
+    ports:
+      - "${DATABASE_PORT}:${DATABASE_PORT}"
+    environment:
+      - DB_PATH=/data/aiml_data.db
+      - DATABASE_PORT=${DATABASE_PORT}
+      - API_HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./aiml_data.db:/data/aiml_data.db:ro
+      # Mount a directory for capability configs to avoid Docker file mount issues
+      # The code will create capability_configs.db inside this directory
+      - ./.capability-configs:/data/configs:rw
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${DATABASE_PORT}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - aiml-network
+
+  # Dashboard Service - Main UI and visualization (LOCAL BUILD)
+  dashboard-service:
+    build:
+      context: .
+      dockerfile: ./dashboard-service/Dockerfile
+    image: dashboard_zero-dashboard-service:latest
+    container_name: aiml-dashboard-service
+    ports:
+      - "${DASHBOARD_PORT}:${DASHBOARD_PORT}"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=http://database-service:${DATABASE_PORT}
+      - PORT=${DASHBOARD_PORT}
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      database-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${DASHBOARD_PORT}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - aiml-network
+
+networks:
+  aiml-network:
+    driver: bridge
+
+volumes:
+  aiml-data:
+    external: false
+    driver: local

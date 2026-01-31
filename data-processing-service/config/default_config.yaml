@@ -1,0 +1,132 @@
+# Default Configuration for Data Processing Microservice
+# This file provides default values that can be overridden by environment variables
+
+# Data source files and their configurations
+# Single source of truth for all file specifications
+data_sources:
+  risks:
+    file: "source_docs/AIML_RISK_TAXONOMY_V6.xlsx"  # Primary file name
+    description: "AI Risk Taxonomy with risk definitions and descriptions"
+    # Column mappings for standard mode (resilient mode auto-detects)
+    columns:
+      id: "ID"
+      title: "Risk"
+      description: "Risk Description"
+    # Alternative column names that might be used
+    alternative_columns:
+      id: ["ID", "Risk ID", "AIR"]
+      title: ["Risk", "Risk Title", "Title", "Name"]
+      description: ["Risk Description", "Description", "Details"]
+  
+  controls:
+    file: "source_docs/AIML_CONTROL_FRAMEWORK_V4.xlsx"  # Primary file name
+    description: "AI Control Framework with control domains and purposes"
+    columns:
+      id: "Code"
+      title: "Purpose"
+      description: "Purpose"
+    alternative_columns:
+      id: ["Code", "Control ID", "Sub-Control", "#"]
+      title: ["Purpose", "Control Title", "Title", "Name"]
+      description: ["Purpose", "Description", "Details"]
+  
+  questions:
+    file: "source_docs/AIML_INTERVIEW_QUESTIONS_V1.xlsx"  # Primary file name
+    description: "Interview questions for risk assessment across multiple sheets"
+    sheets: "all"  # Use all sheets in the Excel file
+    columns:
+      id: "Question Number"
+      text: "Question Text"
+      category: "Category"
+      topic: "Topic"
+      risk_mapping: "AIML_RISK_TAXONOMY"
+      control_mapping: "AIML_CONTROL"
+    alternative_columns:
+      id: ["Question Number", "Question ID", "Q#", "ID"]
+      text: ["Question Text", "Question", "Text", "Content"]
+      category: ["Category", "Type", "Class", "Domain"]
+      topic: ["Topic", "Subject", "Theme", "Area"]
+  
+  definitions:
+    file: "source_docs/AI_Definitions_and_Taxonomy_V1.xlsx"  # Primary file name
+    description: "AI/ML terminology definitions and taxonomy"
+    columns:
+      id: "Term"
+      title: "Term"
+      description: "Definition"
+      category: "Category"
+      source: "Source"
+    alternative_columns:
+      id: ["Term", "Term ID", "ID", "Name"]
+      title: ["Term", "Title", "Name", "Concept"]
+      description: ["Definition", "Description", "Details", "Explanation"]
+      category: ["Category", "Type", "Class", "Domain", "Classification"]
+      source: ["Source", "Reference", "Citation", "Origin"]
+  
+  capabilities:
+    file: "source_docs/AI_ML_Security_Capabilities.xlsx"  # Primary file name
+    description: "Technical and non-technical security capabilities"
+    sheets: ["Technical Security Capabilities", "Non-Technical Capabilities"]
+    columns:
+      capability: "Technical Capability"  # For technical sheet
+      capability_nontech: "Capability"    # For non-technical sheet
+      domain: "Capability Domain"
+      definition: "Capability Definition"
+      controls: "Controls"
+      products: "Candidate Products (modern, AI-defense)"
+      notes: "Notes"
+    alternative_columns:
+      capability: ["Technical Capability", "Capability", "Name"]
+      capability_nontech: ["Capability", "Non-Technical Capability", "Name"]
+      domain: ["Capability Domain", "Domain", "Category"]
+      definition: ["Capability Definition", "Definition", "Description"]
+      controls: ["Controls", "Control IDs", "Control Mappings"]
+      products: ["Candidate Products (modern, AI-defense)", "Products", "Candidate Products", "Tools"]
+      notes: ["Notes", "Note", "Comments", "Additional Info"]
+
+# Database configuration
+database:
+  file: "aiml_data.db"
+  description: "SQLite database containing extracted and processed data"
+  schema:
+    id_length: 50
+    title_length: 255
+    description_length: 1000
+
+# Extraction settings
+extraction:
+  # Processing mode settings
+  default_mode: "resilient"  # "resilient" or "standard"
+  auto_detect_schema: true
+  fallback_to_standard: true
+  
+  # File validation settings
+  validate_files: true
+  check_file_modification: true
+  recursive_file_search: true
+  file_pattern_matching: true
+  
+  # Data processing settings
+  remove_duplicates: true
+  validate_relationships: true
+  normalize_ids: true
+  clean_data: true
+  
+  # Error handling
+  continue_on_error: false
+  max_errors: 10
+  error_threshold: 0.1  # 10% error rate threshold
+  
+  # Logging settings
+  log_level: "INFO"
+  log_format: "%(asctime)s - %(levelname)s - %(message)s"
+
+# Output settings
+output:
+  # Summary reporting
+  print_summary: true
+  print_data_sources: true
+  
+  # File metadata collection
+  collect_metadata: true
+  extract_version_from_filename: true

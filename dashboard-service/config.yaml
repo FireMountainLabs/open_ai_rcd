@@ -1,0 +1,100 @@
+# Dashboard Service Configuration
+# Central configuration file for the AIML Dashboard Service
+
+# Server Configuration
+server:
+  host: "${HOST:-0.0.0.0}"
+  port: "${PORT}"
+  debug: "${DEBUG:-false}"
+  base_url: "${BASE_URL:-http://localhost:${PORT}}"
+
+# Database Service Configuration
+database_service:
+  url: "${DATABASE_URL:-http://localhost:${DATABASE_PORT}}"
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 1  # seconds
+
+
+authentication:
+  enabled: "${ENABLE_AUTH:-false}"
+  enable_signup: "${ENABLE_SIGNUP:-false}"
+  session_timeout: 3600  # seconds (1 hour)
+
+# API Configuration
+api:
+  # Request limits
+  limits:
+    default_limit: 100
+    max_limit: 1000
+    search_limit: 50
+    relationships_limit: 1000
+  
+  # Timeout settings
+  timeouts:
+    request_timeout: 30
+    search_timeout: 5000  # milliseconds
+    debounce_delay: 300   # milliseconds
+
+# Frontend Configuration
+frontend:
+  # Visualization settings
+  visualization:
+    max_items: 50
+    animation_duration: 750  # milliseconds
+    chart_height: 200        # pixels
+    chart_width: 600         # pixels
+  
+  # UI settings
+  ui:
+    theme: "light"
+    show_legends: true
+    max_table_rows: 1000
+    tooltip_delay: 500  # milliseconds
+    definition_hovers:
+      risks: true
+      controls: true
+      questions: true
+      definitions: false
+  
+  # Color scheme for coverage gaps
+  colors:
+    success: "#10b981"  # Green for 100% coverage
+    warning: "#f59e0b"  # Amber for partial coverage
+    critical: "#ef4444" # Red for gaps
+    info: "#3b82f6"     # Blue for info
+  
+  # External dependencies
+  dependencies:
+    d3_js: "https://d3js.org/d3.v7.min.js"
+    d3_sankey: "https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "${LOG_FILE:-/app/logs/dashboard-service.log}"
+
+# Health Check Configuration
+health_check:
+  interval: 30
+  timeout: 10
+  retries: 3
+  start_period: 10
+
+# Performance Configuration
+performance:
+  # Caching
+  enable_response_cache: true
+  cache_ttl: 300  # seconds
+  
+  # Connection settings
+  max_connections: 10
+  keep_alive: true
+
+# CORS Configuration
+cors:
+  allow_origins: ["*"]  # Restrict in production
+  allow_credentials: true
+  allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allow_headers: ["Content-Type", "Authorization"]

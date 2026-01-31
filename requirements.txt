@@ -1,0 +1,10 @@
+# AI_RCD - Production Requirements
+# This is the main requirements file for deployment
+
+# Include base requirements
+-r requirements/base.txt
+
+# Include all service requirements for full deployment
+-r requirements/dashboard.txt
+-r requirements/database.txt
+-r requirements/data-processing.txt

@@ -1,0 +1,5 @@
+# Data Processing Service specific requirements
+# Extends base.txt
+
+# Additional utilities
+# chardet==5.2.0

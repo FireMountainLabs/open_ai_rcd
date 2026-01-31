@@ -1,0 +1,7 @@
+# Database Service Requirements
+# Extends requirements/base.txt - only service-specific dependencies here
+# Core dependencies (fastapi, uvicorn, pydantic, requests, pyyaml, sqlalchemy, 
+# cryptography, gunicorn, etc.) are inherited from the base image
+
+# Additional HTTP client for async operations
+httpx==0.25.2

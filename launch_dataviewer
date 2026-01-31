@@ -1,0 +1,835 @@
+#!/bin/bash
+
+# AIML Data Viewer Launcher
+# Consolidated launcher for the microservices-based AI/ML Risk Management Dashboard
+# Handles database generation, microservices deployment, and all management tasks
+
+set -e
+
+# Configuration
+BUILD_MODE=true  # Always use local build (dev mode is default)
+NUKE_MODE=false
+CLEAN_MODE=false
+RESTART_MODE=false
+STOP_MODE=false
+GENERATE_DB_MODE=false
+LOCAL_DB_MODE=false
+LOCAL_DB_PATH=""
+NO_AUTH_MODE=true
+TEST_DB_MODE=false
+DOCKER_COMPOSE_FILE="docker-compose-dev.yml"  # Default to local development
+DOCKER_COMPOSE_CMD=""  # Will be set by detect_docker_compose
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+# Function to read file names from configuration
+get_config_files() {
+    local config_script="data-processing-service/get_config_files.sh"
+    
+    if [ ! -f "$config_script" ]; then
+        print_error "Configuration script not found: $config_script"
+        return 1
+    fi
+    
+    # Use the dedicated configuration script
+    bash "$config_script" --files 2>/dev/null
+}
+
+# Function to print colored output
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_header() {
+    echo -e "${CYAN}[HEADER]${NC} $1"
+}
+
+# Show help information
+show_help() {
+    echo "AIML Data Viewer Launcher"
+    echo "========================="
+    echo ""
+    echo "A launcher for the AI/ML Risk Management Dashboard microservices."
+    echo ""
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Primary Commands:"
+    echo "  (no args)           Launch with local build (default)"
+    echo "  --local-db PATH     Use local database file"
+    echo "  --generate-db       Generate database from Excel files only"
+    echo "  --test-db           Generate database from test Excel files"
+    echo ""
+    echo "Management Commands:"
+    echo "  --restart           Stop and restart services"
+    echo "  --stop              Stop all services"
+    echo "  --clean             Remove all project containers and images (preserves volumes and databases)"
+    echo "  --nuke              Nuclear option: docker system prune + remove all .db files"
+    echo "  --status            Show service status"
+    echo "  --logs              Show service logs"
+    echo "  --health            Check all services health"
+    echo ""
+    echo "  -h, --help          Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0                          # Launch with local build (default)"
+    echo "  $0 --local-db ./my-db.db    # Use local database file"
+    echo "  $0 --generate-db            # Generate database only"
+    echo "  $0 --test-db                # Generate database from test data"
+    echo "  $0 --restart                # Restart services"
+    echo "  $0 --stop                   # Stop services"
+    echo "  $0 --status                 # Check what's running"
+    echo "  $0 --logs                   # View logs"
+    echo ""
+    echo "Access URLs:"
+    echo "  Dashboard: http://localhost:${DASHBOARD_PORT}"
+    echo "  Database API: http://localhost:${DATABASE_PORT}"
+    echo ""
+    echo "Note: This is a microservices-based architecture with separate database and dashboard services."
+}
+
+# Parse command line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --generate-db|--generate-database)
+                GENERATE_DB_MODE=true
+                shift
+                ;;
+            --test-db|--test-database)
+                TEST_DB_MODE=true
+                shift
+                ;;
+            --local-db)
+                LOCAL_DB_MODE=true
+                if [ -n "$2" ] && [[ ! "$2" =~ ^-- ]]; then
+                    LOCAL_DB_PATH="$2"
+                    shift 2
+                else
+                    print_error "--local-db requires a path to the database file"
+                    exit 1
+                fi
+                ;;
+            --restart)
+                RESTART_MODE=true
+                shift
+                ;;
+            --stop)
+                STOP_MODE=true
+                shift
+                ;;
+            --status)
+                load_environment_config
+                check_docker
+                detect_docker_compose
+                show_status
+                exit 0
+                ;;
+            --logs)
+                load_environment_config
+                check_docker
+                detect_docker_compose
+                show_logs
+                exit 0
+                ;;
+            --health)
+                load_environment_config
+                check_health
+                exit 0
+                ;;
+            --clean)
+                CLEAN_MODE=true
+                shift
+                ;;
+            --nuke)
+                NUKE_MODE=true
+                shift
+                ;;
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# Load environment configuration from config manager
+load_environment_config() {
+    print_status "Loading environment configuration from config manager..."
+    
+    # Source .env file first to load environment variables
+    if [ -f ".env" ]; then
+        print_status "Loading environment variables from .env file..."
+        set -a  # automatically export all variables
+        source .env
+        set +a  # turn off automatic export
+        print_success "Loaded environment variables from .env file"
+    fi
+    
+    # Check if Python 3 is available
+    if ! command -v python3 &> /dev/null; then
+        print_error "Python 3 is required but not found"
+        exit 1
+    fi
+    
+    # Use Python with CommonConfigManager to read all environment variables
+    local config_exports
+    config_exports=$(python3 << 'PYTHON_EOF'
+import sys
+import os
+from pathlib import Path
+sys.path.insert(0, str(Path('shared-services')))
+from common_config import CommonConfigManager
+
+try:
+    config = CommonConfigManager()
+    
+    # Load all environment defaults
+    env_defaults = config.get_config_value('env_defaults', {})
+    for key, value in env_defaults.items():
+        print(f'export {key}={value}')
+    
+    # Load ports from ports section and export as environment variables
+    # Map service names to environment variable names
+    ports_config = config.get_config_value('ports', {})
+    port_env_mapping = {
+        'database_service': 'DATABASE_PORT',
+        'dashboard_service': 'DASHBOARD_PORT'
+    }
+    
+    # Export ports from ports section (override env_defaults to ensure ports section is authoritative)
+    for service_name, port in ports_config.items():
+        env_var = port_env_mapping.get(service_name)
+        if env_var:
+            print(f'export {env_var}={port}')
+    
+    # Load CORS configuration and resolve port references
+    cors_internal = config.get_config_value('cors_internal_origins', '')
+    cors_external = config.get_config_value('cors_external_origins', '')
+    
+    if cors_internal:
+        # Replace ${ports.service_name} with actual port values
+        for service_name, port in ports_config.items():
+            cors_internal = cors_internal.replace(f'${{ports.{service_name}}}', str(port))
+        print(f'export CORS_INTERNAL_ORIGINS="{cors_internal}"')
+    
+    if cors_external:
+        # Replace ${ports.service_name} with actual port values
+        for service_name, port in ports_config.items():
+            cors_external = cors_external.replace(f'${{ports.{service_name}}}', str(port))
+        print(f'export CORS_EXTERNAL_ORIGINS="{cors_external}"')
+    
+    # Load domain configuration from environment variables
+    dashboard_port = ports_config.get('dashboard_service')
+    dashboard_domain = os.getenv('DASHBOARD_DOMAIN')
+    hub_domain = os.getenv('HUB_DOMAIN')
+    
+    # Validate dashboard_port is not None before using it
+    if dashboard_port is None:
+        print('# Error: dashboard_service port not found in ports configuration', file=sys.stderr)
+        sys.exit(1)
+    
+    # Default to localhost if not set
+    if not dashboard_domain:
+        dashboard_domain = f"http://localhost:{dashboard_port}"
+    
+    if not hub_domain:
+        hub_domain = f"http://localhost:{dashboard_port}"
+    
+    print(f'export DASHBOARD_DOMAIN="{dashboard_domain}"')
+    print(f'export HUB_DOMAIN="{hub_domain}"')
+        
+except Exception as e:
+    print(f'# Error: {e}', file=sys.stderr)
+    sys.exit(1)
+PYTHON_EOF
+    )
+    
+    if [ $? -ne 0 ]; then
+        print_error "Failed to load environment configuration from config manager"
+        exit 1
+    fi
+    
+    # Export the configuration
+    eval "$config_exports"
+    
+    # Verify essential ports were loaded
+    if [ -z "$DATABASE_PORT" ]; then
+        print_error "Failed to load DATABASE_PORT from config manager"
+        exit 1
+    fi
+    
+    print_success "Environment configuration loaded from config manager"
+    if [ -n "$DATABASE_PORT" ]; then
+        print_success "Ports: DATABASE_PORT=$DATABASE_PORT, DASHBOARD_PORT=$DASHBOARD_PORT"
+    fi
+    if [ -n "$CORS_EXTERNAL_ORIGINS" ]; then
+        print_success "CORS configuration loaded: EXTERNAL_ORIGINS=$CORS_EXTERNAL_ORIGINS"
+    fi
+    if [ -n "$CORS_INTERNAL_ORIGINS" ]; then
+        print_success "CORS configuration loaded: INTERNAL_ORIGINS=$CORS_INTERNAL_ORIGINS"
+    fi
+    if [ -n "$DASHBOARD_DOMAIN" ]; then
+        print_success "Domain configuration loaded: DASHBOARD_DOMAIN=$DASHBOARD_DOMAIN"
+    fi
+}
+
+# Detect which Docker Compose command to use
+detect_docker_compose() {
+    print_status "Detecting Docker Compose command..."
+    
+    # Try Docker Compose V2 first (newer, preferred)
+    if docker compose version > /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        print_success "Using Docker Compose V2: docker compose"
+        return 0
+    fi
+    
+    # Fall back to legacy docker-compose
+    if command -v docker-compose > /dev/null 2>&1; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        print_success "Using Docker Compose V1: docker-compose"
+        return 0
+    fi
+    
+    # Neither available
+    print_error "Neither 'docker compose' nor 'docker-compose' is available"
+    print_status "Please install Docker Compose:"
+    print_status "  - For Docker Desktop: Update to latest version"
+    print_status "  - For standalone: https://docs.docker.com/compose/install/"
+    exit 1
+}
+
+# Check if Docker is running
+check_docker() {
+    print_status "Checking Docker..."
+    if ! docker info > /dev/null 2>&1; then
+        print_error "Docker is not running. Please start Docker and try again."
+        exit 1
+    fi
+    print_success "Docker is running"
+}
+
+
+# Check if database file exists
+check_database() {
+    print_status "Checking database file..."
+    
+    # If local database mode is enabled, check the specified path
+    if [ "$LOCAL_DB_MODE" = true ]; then
+        if [ -z "$LOCAL_DB_PATH" ]; then
+            print_error "Local database mode enabled but no path specified"
+            exit 1
+        fi
+        
+        if [ ! -f "$LOCAL_DB_PATH" ]; then
+            print_error "Local database file not found: $LOCAL_DB_PATH"
+            exit 1
+        fi
+        
+        print_success "Local database file found: $LOCAL_DB_PATH"
+        return 0
+    fi
+    
+    # Default behavior: check for existing database
+    # Get database filename from config
+    local db_filename="aiml_data.db"  # Default fallback
+    if bash "data-processing-service/get_config_files.sh" --database 2>/dev/null; then
+        db_filename=$(bash "data-processing-service/get_config_files.sh" --database 2>/dev/null)
+    fi
+    
+    if [ ! -f "$db_filename" ]; then
+        print_error "No local database found."
+        print_status "Please generate it locally:"
+        print_status "  $0 --generate-db"
+        print_status "Or use a local database:"
+        print_status "  $0 --local-db /path/to/your/database.db"
+        exit 1
+    else
+        print_success "Database file found locally: $db_filename"
+    fi
+}
+
+# Generate database
+generate_database() {
+    if [ "$TEST_DB_MODE" = true ]; then
+        print_header "Generating Test Database from Excel Files"
+        print_status "This will process test Excel files and create the SQLite database..."
+    else
+        print_header "Generating Database from Excel Files"
+        print_status "This will process Excel files and create the SQLite database..."
+    fi
+    
+    # Check if Python is available
+    if ! command -v python3 &> /dev/null; then
+        print_error "Python 3 is not installed or not in PATH"
+        exit 1
+    fi
+    
+    # Handle test database mode
+    if [ "$TEST_DB_MODE" = true ]; then
+        print_status "Using test Excel files..."
+        
+        # Check if test files exist in test_data/basic directory
+        if [ ! -f "data-processing-service/test_data/basic/test_risks.xlsx" ] || [ ! -f "data-processing-service/test_data/basic/test_controls.xlsx" ] || [ ! -f "data-processing-service/test_data/basic/test_questions.xlsx" ]; then
+            print_error "Test Excel files not found!"
+            print_status "Required files:"
+            print_status "  - data-processing-service/test_data/basic/test_risks.xlsx"
+            print_status "  - data-processing-service/test_data/basic/test_controls.xlsx"
+            print_status "  - data-processing-service/test_data/basic/test_questions.xlsx"
+            exit 1
+        fi
+        
+        # Set environment variables to use test files
+        export DATA_DIR="data-processing-service"
+        export OUTPUT_DIR="data-processing-service"
+        export CONFIG_FILE="data-processing-service/config/default_config.yaml"
+        export TEST_MODE="true"
+        
+        print_success "Test Excel files ready"
+    else
+        # Validate configuration and files using the config system
+        print_status "Validating configuration and required files..."
+        if ! bash "data-processing-service/get_config_files.sh" --validate; then
+            print_error "Configuration validation failed"
+            exit 1
+        fi
+        
+        # Get file names from configuration
+        local config_files
+        config_files=$(get_config_files)
+        if [ $? -ne 0 ]; then
+            print_error "Failed to read configuration file"
+            exit 1
+        fi
+        
+        # Check each file from configuration
+        local missing_files=()
+        for file in $config_files; do
+            # Check in multiple locations
+            local found=false
+            if [ -f "$file" ]; then
+                found=true
+            elif [ -f "data-processing-service/$file" ]; then
+                found=true
+            elif [ -f "source_docs/$file" ]; then
+                found=true
+            fi
+            
+            if [ "$found" = false ]; then
+                missing_files+=("$file")
+            fi
+        done
+        
+        if [ ${#missing_files[@]} -gt 0 ]; then
+            print_error "Missing required Excel files:"
+            for file in "${missing_files[@]}"; do
+                echo "  - $file"
+            done
+            print_status "Files are specified in: data-processing-service/config/default_config.yaml"
+            exit 1
+        fi
+    fi
+    
+    # Install dependencies if needed
+    if [ -f "data-processing-service/requirements.txt" ]; then
+        print_status "Installing Python dependencies..."
+        pip3 install -r data-processing-service/requirements.txt > /dev/null 2>&1 || true
+    fi
+    
+    # Generate database
+    print_status "Processing Excel files and generating database..."
+    cd data-processing-service
+    
+    # Set environment variables to point to the correct data directory
+    if [ "$TEST_DB_MODE" = true ]; then
+        export DATA_DIR="."
+        export OUTPUT_DIR="."
+        export CONFIG_FILE="config/test_config.yaml"
+        export TEST_MODE="true"
+        print_status "Using Excel test data files..."
+    else
+        export DATA_DIR=".."
+        export OUTPUT_DIR="."
+        export CONFIG_FILE="config/default_config.yaml"
+    fi
+    
+    # Run the data processing app with files in their original locations
+    python3 app.py
+    
+    # Copy database back to root directory
+    # Get database filename from config
+    local db_filename="aiml_data.db"  # Default fallback
+    if bash "get_config_files.sh" --database 2>/dev/null; then
+        db_filename=$(bash "get_config_files.sh" --database 2>/dev/null)
+    fi
+    
+    if [ -f "$db_filename" ]; then
+        cp "$db_filename" ../
+        print_success "Database generated and copied to root directory: $db_filename"
+    else
+        print_error "Database generation failed - no $db_filename file created"
+        exit 1
+    fi
+    
+    cd ..
+    print_success "Database generation completed successfully!"
+}
+
+# Stop existing containers
+cleanup() {
+    print_status "Cleaning up existing containers..."
+    $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+    cleanup_temp_docker_compose
+    print_success "Cleanup completed"
+}
+
+# Clean containers - remove all project containers and images but preserve volumes and databases
+clean_containers() {
+    print_header "Container Cleanup Mode"
+    print_status "🧹 Cleaning all project containers and images (preserving volumes and databases)..."
+    
+    # Stop and remove all project containers
+    print_status "Stopping and removing all project containers..."
+    $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down --remove-orphans 2>/dev/null || true
+    $DOCKER_COMPOSE_CMD -f "docker-compose-dev.yml" down --remove-orphans 2>/dev/null || true
+    
+    # Remove project-specific containers by name
+    print_status "Removing project containers..."
+    docker rm -f aiml-database-service aiml-dashboard-service 2>/dev/null || true
+    
+    # Remove local build images (if they exist)
+    print_status "Removing local build images..."
+    docker rmi -f dashboard_zero-database-service dashboard_zero-dashboard-service 2>/dev/null || true
+    
+    # Clean up temporary docker-compose file
+    cleanup_temp_docker_compose
+    
+    print_success "🧹 CLEAN COMPLETE: All project containers and images have been removed!"
+    print_warning "Volumes and database files preserved."
+}
+
+# Nuclear cleanup - remove all project-related containers, images, and database files
+nuke_everything() {
+    print_header "Nuclear Cleanup Mode - Return to Factory Settings"
+    print_status "💥 Nuclear cleanup: docker system prune + remove all project .db files..."
+    
+    # Stop and remove all containers
+    print_status "Stopping and removing all containers..."
+    $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down --remove-orphans --volumes 2>/dev/null || true
+    $DOCKER_COMPOSE_CMD -f "docker-compose-dev.yml" down --remove-orphans --volumes 2>/dev/null || true
+    
+    # Remove project-specific containers by name
+    print_status "Removing project containers..."
+    docker rm -f aiml-database-service aiml-dashboard-service 2>/dev/null || true
+    
+    # Remove local build images (if they exist)
+    print_status "Removing local build images..."
+    docker rmi -f dashboard_zero-database-service dashboard_zero-dashboard-service 2>/dev/null || true
+    
+    # Perform docker system prune
+    print_status "Performing docker system prune..."
+    docker system prune -af --volumes 2>/dev/null || true
+    
+    # Remove all project database files
+    print_status "Removing all project database files..."
+    # Get database filename from config
+    local db_filename="aiml_data.db"  # Default fallback
+    if bash "data-processing-service/get_config_files.sh" --database 2>/dev/null; then
+        db_filename=$(bash "data-processing-service/get_config_files.sh" --database 2>/dev/null)
+    fi
+    
+    rm -f "$db_filename" 2>/dev/null || true
+    rm -f "data-processing-service/$db_filename" 2>/dev/null || true
+    rm -f "database-service/$db_filename" 2>/dev/null || true
+    
+    # Clean up temporary docker-compose file
+    cleanup_temp_docker_compose
+    
+    print_success "💥 NUKE COMPLETE: Returned to factory settings!"
+    print_warning "All project containers, images, volumes, networks, and database files removed."
+}
+
+
+# Create temporary docker-compose file with local database path
+create_temp_docker_compose() {
+    local temp_file="docker-compose-temp.yml"
+    
+    # Copy the base docker-compose file
+    cp "$DOCKER_COMPOSE_FILE" "$temp_file"
+    
+    # If local database mode is enabled, update the volume mapping
+    if [ "$LOCAL_DB_MODE" = true ] && [ -n "$LOCAL_DB_PATH" ]; then
+        print_status "Creating temporary docker-compose file with local database path..."
+        
+        # Use sed to replace the database volume mapping
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS sed
+            sed -i '' "s|- \./aiml_data\.db:/data/aiml_data\.db:ro|- $LOCAL_DB_PATH:/data/aiml_data.db:ro|g" "$temp_file"
+        else
+            # Linux sed
+            sed -i "s|- \./aiml_data\.db:/data/aiml_data\.db:ro|- $LOCAL_DB_PATH:/data/aiml_data.db:ro|g" "$temp_file"
+        fi
+        
+        DOCKER_COMPOSE_FILE="$temp_file"
+        print_success "Using local database: $LOCAL_DB_PATH"
+    fi
+}
+
+# Clean up temporary docker-compose file
+cleanup_temp_docker_compose() {
+    if [ -f "docker-compose-temp.yml" ]; then
+        rm -f "docker-compose-temp.yml"
+    fi
+}
+
+# Start services
+start_services() {
+    # Create temporary docker-compose file if needed
+    create_temp_docker_compose
+    
+    print_status "Building and starting microservices locally..."
+    DATABASE_PORT=$DATABASE_PORT DASHBOARD_PORT=$DASHBOARD_PORT CORS_EXTERNAL_ORIGINS="$CORS_EXTERNAL_ORIGINS" CORS_INTERNAL_ORIGINS="$CORS_INTERNAL_ORIGINS" DASHBOARD_DOMAIN="$DASHBOARD_DOMAIN" HUB_DOMAIN="$HUB_DOMAIN" $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" up --build -d
+    
+    print_success "Services started successfully"
+}
+
+# Wait for services to be healthy
+wait_for_services() {
+    print_status "Waiting for services to be healthy..."
+    
+    # Verify port variables are set
+    if [ -z "$DATABASE_PORT" ] || [ -z "$DASHBOARD_PORT" ]; then
+        print_error "Port variables not set! DATABASE_PORT=$DATABASE_PORT DASHBOARD_PORT=$DASHBOARD_PORT"
+        print_status "Reloading environment configuration..."
+        load_environment_config
+    fi
+    
+    local max_attempts=5
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        print_status "Health check attempt $attempt/$max_attempts..."
+        
+        # Check database service
+        if curl -f -s http://localhost:${DATABASE_PORT}/api/health > /dev/null 2>&1; then
+            print_success "Database service is healthy"
+            db_healthy=true
+        else
+            print_warning "Database service not responding on port ${DATABASE_PORT}"
+            db_healthy=false
+        fi
+        
+        # Check dashboard service
+        if curl -f -s http://localhost:${DASHBOARD_PORT}/api/health > /dev/null 2>&1; then
+            print_success "Dashboard service is healthy"
+            dashboard_healthy=true
+        else
+            print_warning "Dashboard service not responding on port ${DASHBOARD_PORT}"
+            dashboard_healthy=false
+        fi
+        
+        # Check database and dashboard services
+        if [ "$db_healthy" = true ] && [ "$dashboard_healthy" = true ]; then
+            print_success "All services are healthy!"
+            return 0
+        fi
+        
+        sleep 3
+        attempt=$((attempt + 1))
+    done
+    
+    print_error "Services failed to become healthy after $((max_attempts * 3)) seconds"
+    print_status "Check service logs: $DOCKER_COMPOSE_CMD -f $DOCKER_COMPOSE_FILE logs"
+    print_status "Service status: $DOCKER_COMPOSE_CMD -f $DOCKER_COMPOSE_FILE ps"
+    return 1
+}
+
+# Show service status
+show_status() {
+    print_header "Service Status"
+    echo ""
+    $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" ps
+    echo ""
+    echo "Access URLs:"
+    echo "  Dashboard: http://localhost:${DASHBOARD_PORT}"
+    echo "  Database API: http://localhost:${DATABASE_PORT}"
+    echo ""
+}
+
+# Show service logs
+show_logs() {
+    print_header "Service Logs"
+    echo ""
+    $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" logs -f
+}
+
+# Check service health
+check_health() {
+    print_header "Service Health Check"
+    echo ""
+    
+    local healthy_count=0
+    local total_count=0
+    
+    # Check database service
+    print_status "Checking database service..."
+    total_count=$((total_count + 1))
+    if curl -f -s http://localhost:${DATABASE_PORT}/api/health > /dev/null 2>&1; then
+        print_success "Database service is healthy"
+        healthy_count=$((healthy_count + 1))
+    else
+        print_error "Database service is not responding"
+    fi
+    
+    # Check dashboard service
+    print_status "Checking dashboard service..."
+    total_count=$((total_count + 1))
+    if curl -f -s http://localhost:${DASHBOARD_PORT}/api/health > /dev/null 2>&1; then
+        print_success "Dashboard service is healthy"
+        healthy_count=$((healthy_count + 1))
+    else
+        print_error "Dashboard service is not responding"
+    fi
+    
+    echo ""
+    print_status "Health Summary: $healthy_count/$total_count services healthy"
+    
+    if [ $healthy_count -eq $total_count ]; then
+        print_success "All services are healthy! 🎉"
+    elif [ $healthy_count -gt 0 ]; then
+        print_warning "Some services are not responding. Check logs with: $0 --logs"
+    else
+        print_error "No services are responding. Check if services are running with: $0 --status"
+    fi
+    
+    echo ""
+}
+
+# Display service information
+show_info() {
+    echo ""
+    print_header "Services Information"
+    
+    echo "Dashboard Service: http://localhost:${DASHBOARD_PORT}"
+    echo "Database Service:  http://localhost:${DATABASE_PORT}"
+    echo ""
+    echo "Note: Direct access to all services."
+    
+    echo ""
+    echo "Health Checks:"
+    echo "  Dashboard: http://localhost:${DASHBOARD_PORT}/api/health"
+    echo "  Database:  http://localhost:${DATABASE_PORT}/api/health"
+    echo ""
+    echo "Management Commands:"
+    echo "  $0 --status        # Show service status"
+    echo "  $0 --logs          # View service logs"
+    echo "  $0 --health        # Check service health"
+    echo "  $0 --stop          # Stop services"
+    echo "  $0 --restart       # Restart services"
+    echo ""
+}
+
+
+
+# Main execution
+main() {
+    parse_arguments "$@"
+    
+    print_header "AIML Data Viewer Launcher"
+    print_status "Microservices-based AI/ML Risk Management Dashboard"
+    echo ""
+    
+    # Load environment configuration from config manager early
+    load_environment_config
+    
+    # Handle different modes
+    if [ "$GENERATE_DB_MODE" = true ] || [ "$TEST_DB_MODE" = true ]; then
+        check_docker
+        detect_docker_compose
+        generate_database
+        exit 0
+    fi
+    
+    if [ "$STOP_MODE" = true ]; then
+        check_docker
+        detect_docker_compose
+        print_status "Stopping all services..."
+        $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down
+        print_success "Services stopped"
+        exit 0
+    fi
+    
+    if [ "$CLEAN_MODE" = true ]; then
+        check_docker
+        detect_docker_compose
+        clean_containers
+        exit 0
+    fi
+    
+    if [ "$NUKE_MODE" = true ]; then
+        check_docker
+        detect_docker_compose
+        nuke_everything
+        exit 0
+    fi
+    
+    if [ "$RESTART_MODE" = true ]; then
+        print_status "Restarting services..."
+        check_docker
+        detect_docker_compose
+        cleanup
+        start_services
+        if wait_for_services; then
+            show_info
+            print_success "Services restarted successfully!"
+        else
+            print_error "Failed to restart services. Check logs for details."
+            exit 1
+        fi
+        exit 0
+    fi
+    
+    # Default launch behavior
+    check_docker
+    detect_docker_compose
+    check_database
+    cleanup
+    start_services
+    
+    if wait_for_services; then
+        show_info
+        print_success "AIML Data Viewer is running successfully!"
+    else
+        print_error "Failed to start services. Check logs for details."
+        exit 1
+    fi
+}
+
+# Handle script interruption
+trap 'print_warning "Script interrupted. Stopping services..."; $DOCKER_COMPOSE_CMD -f "$DOCKER_COMPOSE_FILE" down; cleanup_temp_docker_compose; exit 1' INT TERM
+
+# Run main function
+main "$@"

@@ -1,0 +1,80 @@
+# Common Configuration for Dashboard Zero
+# Shared configuration values across all microservices
+
+# Network Configuration
+network:
+  name: "aiml-network"
+  driver: "bridge"
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_pattern: "/app/logs/{service}.log"
+
+# Health Check Configuration
+health_check:
+  interval: 30
+  timeout: 10
+  retries: 3
+  start_period: 10
+
+# Performance Configuration
+performance:
+  max_connections: 10
+  connection_timeout: 30
+  enable_caching: true
+  cache_ttl: 300  # seconds
+
+# CORS Configuration
+cors:
+  # Internal services - using parameter references from ports list
+  internal_origins: 
+    - "http://dashboard_service:${ports.dashboard_service}"
+    - "http://data_processing_service:${ports.data_processing_service}"
+    - "http://database_service:${ports.database_service}"
+  # External origins for browser access
+  external_origins: 
+    - "http://localhost:${DASHBOARD_PORT}"
+    - "${DASHBOARD_DOMAIN}"
+    - "${HUB_DOMAIN}"
+  allow_credentials: true
+  allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allow_headers: ["Content-Type"]
+
+# Environment variable mappings for CORS - using parameter references
+cors_internal_origins: "${CORS_INTERNAL_ORIGINS:-http://dashboard_service:${ports.dashboard_service},http://data_processing_service:${ports.data_processing_service},http://database_service:${ports.database_service}}"
+cors_external_origins: "${CORS_EXTERNAL_ORIGINS:-http://localhost:${ports.dashboard_service},${DASHBOARD_DOMAIN},${HUB_DOMAIN}}"
+
+# Domain Configuration
+domain:
+  dashboard: "${DASHBOARD_DOMAIN}"
+  hub: "${HUB_DOMAIN}"
+
+# Environment Variable Defaults
+# These provide default values for docker-compose environment variables
+env_defaults:
+  DATABASE_PORT: 5001
+  DASHBOARD_PORT: 5002
+
+# Port Mapping Configuration
+ports:
+  database_service: 5001
+  dashboard_service: 5002
+  data_processing_service: 5006
+
+# Service URLs (for inter-service communication)
+service_urls:
+  dashboard: "http://dashboard_service:${ports.dashboard_service}"
+  data_processing: "http://data_processing_service:${ports.data_processing_service}"
+  database: "http://database_service:${ports.database_service}"
+
+# API Configuration
+api:
+  limits:
+    default_limit: 100
+    max_limit: 1000
+    search_limit: 200
+  timeouts:
+    request_timeout: 30
+    search_timeout: 5000  # milliseconds

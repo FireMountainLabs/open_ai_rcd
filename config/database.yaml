@@ -1,0 +1,43 @@
+# Database Service Configuration
+# Extends common.yaml
+
+# Server Configuration
+server:
+  host: "${API_HOST:-0.0.0.0}"
+  port: "${API_PORT}"
+  debug: "${DEBUG:-false}"
+  base_url: "${BASE_URL:-http://localhost:${API_PORT}}"
+
+# Database Configuration
+database:
+  path: "${DB_PATH:-aiml_data.db}"
+  timeout: "${DB_TIMEOUT:-30}"
+  check_same_thread: false
+  
+  # Required tables for validation
+  required_tables:
+    - "risks"
+    - "controls"
+    - "questions"
+    - "definitions"
+    - "risk_control_mapping"
+    - "question_risk_mapping"
+    - "question_control_mapping"
+    - "file_metadata"
+
+# API Configuration
+api:
+  limits:
+    default_limit: 100
+    max_limit: 1000
+    max_relationships_limit: 5000
+    search_limit: 200
+  
+  # Request timeout
+  request_timeout: 30
+
+# Performance Configuration
+performance:
+  # Query optimization
+  enable_query_cache: true
+  cache_ttl: 300  # seconds

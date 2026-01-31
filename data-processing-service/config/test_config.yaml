@@ -1,0 +1,97 @@
+# Test Configuration for Data Processing Microservice
+# This file provides test values for CI/CD pipeline using test Excel files
+
+# Data source files and their configurations
+# Single source of truth for all file specifications
+data_sources:
+  risks:
+    file: "test_data/basic/test_risks.xlsx"  # Test file name
+    description: "Test AI Risk Taxonomy with risk definitions and descriptions"
+    # Column mappings for standard mode (resilient mode auto-detects)
+    columns:
+      id: "ID"
+      title: "Risk"
+      description: "Risk Description"
+    # Alternative column names that might be used
+    alternative_columns:
+      id: ["ID", "Risk ID", "AIR"]
+      title: ["Risk", "Risk Title", "Title", "Name"]
+      description: ["Risk Description", "Description", "Details"]
+  
+  controls:
+    file: "test_data/basic/test_controls.xlsx"  # Test file name
+    description: "Test AI Control Framework with control domains and purposes"
+    columns:
+      id: "Code"
+      title: "Purpose"
+      description: "Purpose"
+    alternative_columns:
+      id: ["Code", "Control ID", "Sub-Control", "#"]
+      title: ["Purpose", "Control Title", "Title", "Name"]
+      description: ["Purpose", "Description", "Details"]
+  
+  questions:
+    file: "test_data/basic/test_questions.xlsx"  # Test file name
+    description: "Test Interview questions for risk assessment across multiple sheets"
+    sheets: "all"  # Use all sheets in the Excel file
+    columns:
+      id: "Question Number"
+      text: "Question Text"
+      category: "Category"
+      topic: "Topic"
+      risk_mapping: "AIML_RISK_TAXONOMY"
+      control_mapping: "AIML_CONTROL"
+    alternative_columns:
+      id: ["Question Number", "Question ID", "Q#", "ID"]
+      text: ["Question Text", "Question", "Text", "Content"]
+      category: ["Category", "Type", "Class", "Domain"]
+      topic: ["Topic", "Subject", "Theme", "Area"]
+  
+  # Note: definitions section removed as test_definitions.xlsx is not available
+
+# Database configuration
+database:
+  file: "aiml_data.db"
+  description: "SQLite database containing extracted and processed data"
+  schema:
+    id_length: 50
+    title_length: 255
+    description_length: 1000
+
+# Extraction settings
+extraction:
+  # Processing mode settings
+  default_mode: "resilient"  # "resilient" or "standard"
+  auto_detect_schema: true
+  fallback_to_standard: true
+  
+  # File validation settings
+  validate_files: true
+  check_file_modification: true
+  recursive_file_search: true
+  file_pattern_matching: true
+  
+  # Data processing settings
+  remove_duplicates: true
+  validate_relationships: true
+  normalize_ids: true
+  clean_data: true
+  
+  # Error handling
+  continue_on_error: false
+  max_errors: 10
+  error_threshold: 0.1  # 10% error rate threshold
+  
+  # Logging settings
+  log_level: "INFO"
+  log_format: "%(asctime)s - %(levelname)s - %(message)s"
+
+# Output settings
+output:
+  # Summary reporting
+  print_summary: true
+  print_data_sources: true
+  
+  # File metadata collection
+  collect_metadata: true
+  extract_version_from_filename: true

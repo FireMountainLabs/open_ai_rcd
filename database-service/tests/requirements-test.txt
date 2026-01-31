@@ -1,0 +1,28 @@
+# Testing dependencies for Database Service
+# Extends requirements/test.txt - includes common test dependencies
+# Install with: pip install -r requirements-test.txt
+
+# Include common test requirements
+-r ../../requirements/test.txt
+
+# Async testing support
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.1.0
+
+# FastAPI testing
+starlette>=0.27.0
+
+# Data manipulation for tests
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Development and debugging
+ipdb>=0.13.0
+pdbpp>=0.10.0
+
+# Documentation
+sphinx>=6.0.0
+sphinx-rtd-theme>=1.2.0
+
+# Note: Core dependencies (fastapi, httpx, requests, pyyaml, etc.)
+# are inherited from requirements/base.txt

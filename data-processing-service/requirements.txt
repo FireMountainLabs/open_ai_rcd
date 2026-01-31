@@ -1,0 +1,12 @@
+# Data Processing Service Requirements
+# Extends base.txt - only service-specific dependencies here
+
+# Note: Core dependencies (pandas, openpyxl, xlrd, xlsxwriter, flask, psutil, etc.)
+# are inherited from requirements/base.txt to avoid duplication
+
+# Testing dependencies (optional - install with pip install -r requirements-test.txt)
+# pytest>=7.4.0
+# pytest-cov>=4.1.0
+# pytest-mock>=3.11.1
+# requests>=2.31.0
+# faker>=19.3.0

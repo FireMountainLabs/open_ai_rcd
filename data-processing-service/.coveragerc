@@ -1,0 +1,50 @@
+[run]
+source = .
+omit = 
+    tests/*
+    venv/*
+    .venv/*
+    __pycache__/*
+    */__pycache__/*
+    */tests/*
+    */test_*
+    setup.py
+    conftest.py
+    app.py
+    enhanced_data_processor.py
+    resilient_extractor.py
+    resilient_processor.py
+    processors/*
+    utils/*
+    generate_test_summary.py
+    run_tests_with_summary.py
+    simple_test_summary.py
+    test_runner.sh
+    ci_test_summary.sh
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    class .*\bProtocol\):
+    @(abc\.)?abstractmethod
+
+# Coverage thresholds
+fail_under = 65
+show_missing = True
+skip_covered = False
+skip_empty = False
+
+# HTML report configuration
+html_dir = htmlcov
+html_title = Data Processing Service Coverage Report
+
+# XML report configuration
+xml_output = coverage.xml
+
