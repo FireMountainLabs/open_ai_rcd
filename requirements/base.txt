@@ -21,7 +21,7 @@ pydantic==2.5.0
 pyyaml==6.0.1
 
 # Utilities
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 
 # Database (minimal) - Updated for Python 3.13 compatibility
 sqlalchemy>=2.0.36
