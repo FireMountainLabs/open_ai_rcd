@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-mock
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Install service dependencies
+        for dir in database-service dashboard-service data-processing-service; do
+          if [ -d "$dir" ] && [ -f "$dir/requirements.txt" ]; then
+            pip install -r $dir/requirements.txt
+          fi
+        done
+
+    - name: Run all tests
+      run: |
+        python run_all_tests.py

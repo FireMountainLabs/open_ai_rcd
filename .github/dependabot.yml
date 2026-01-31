@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/database-service"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/dashboard-service"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "pip"
+    directory: "/data-processing-service"
+    schedule:
+      interval: "weekly"

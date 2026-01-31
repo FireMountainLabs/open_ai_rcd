@@ -556,11 +556,16 @@ Authentication is disabled by default. All routes are publicly accessible. If yo
 
 ## 📄 License
 
-[Add your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📚 Additional Documentation
+## 📚 Documentation
 
-- **Deployment Guide**: `Documentation/DEPLOYMENT.md`
-- **Troubleshooting**: `Documentation/TROUBLESHOOTING.md`
-- **Service Architecture**: `SERVICE_ARCHITECTURE.md`
-- **Configuration Access**: `data-processing-service/CONFIG_ACCESS.md`
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Service Architecture](docs/SERVICE_ARCHITECTURE.md)
+- [Data Processing Config](data-processing-service/CONFIG_ACCESS.md)
+
+## 🤝 Community
+
+- [Contributing Guidelines](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
