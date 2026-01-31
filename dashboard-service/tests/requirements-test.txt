@@ -9,7 +9,7 @@
 flask-testing==0.8.1
 
 # HTML parsing for tests
-beautifulsoup4==4.12.2
+beautifulsoup4==4.14.3
 
 # Additional HTTP testing
 httpretty==1.1.4
