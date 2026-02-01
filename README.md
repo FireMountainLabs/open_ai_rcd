@@ -24,13 +24,7 @@ Built as a microservices architecture with an interactive dashboard for explorin
 git clone <repository-url>
 cd open_ai_rcd
 
-# 2. Build the Docker images
-docker compose build
-
-# 3. Generate the initial database from Excel source docs
-docker compose run --rm data-processing-service
-
-# 4. Launch the platform
+# 2. Launch the platform
 docker compose up -d
 ```
 
