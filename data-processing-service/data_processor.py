@@ -305,11 +305,6 @@ class DataProcessor:
         # Insert data with timestamps
         self.database_manager.insert_data("risks", self.risks_df, risk_timestamp)
 
-        # Insert questions data if available
-        if "questions" in data_sources and self.questions_df is not None:
-            question_timestamp = self._get_file_timestamp(self.data_dir / data_sources["questions"]["file"])
-            self.database_manager.insert_data("questions", self.questions_df, question_timestamp)
-
         # Insert controls data if available
         if "controls" in data_sources and self.controls_df is not None:
             control_timestamp = self._get_file_timestamp(self.data_dir / data_sources["controls"]["file"])
@@ -453,14 +448,8 @@ class DataProcessor:
             print(f"Risks extracted: {len(self.risks_df)}")
         if self.controls_df is not None:
             print(f"Controls extracted: {len(self.controls_df)}")
-        if self.questions_df is not None:
-            print(f"Questions extracted: {len(self.questions_df)}")
         if self.risk_control_mapping_df is not None:
             print(f"Risk-Control mappings: {len(self.risk_control_mapping_df)}")
-        if self.question_risk_mapping_df is not None:
-            print(f"Question-Risk mappings: {len(self.question_risk_mapping_df)}")
-        if self.question_control_mapping_df is not None:
-            print(f"Question-Control mappings: {len(self.question_control_mapping_df)}")
 
         print(f"\nDatabase created at: {self.database_manager.db_path}")
         print("=" * 50)

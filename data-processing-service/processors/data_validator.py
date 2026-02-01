@@ -36,12 +36,6 @@ class DataValidator:
                 "min_title_length": 5,
                 "max_title_length": 255,
             },
-            "question": {
-                "required_fields": ["question_id", "question_text"],
-                "id_pattern": r"^[A-Z]{2,6}\d+\.\d+$|^Q\d+$",
-                "min_title_length": 10,
-                "max_title_length": 1000,
-            },
         }
 
     def validate_entity_data(self, df: pd.DataFrame, entity_type: str) -> Dict[str, Any]:
@@ -144,7 +138,6 @@ class DataValidator:
         self,
         risks_df: pd.DataFrame,
         controls_df: pd.DataFrame,
-        questions_df: pd.DataFrame,
     ) -> Dict[str, Any]:
         """
         Validate consistency across different entity types.
@@ -152,7 +145,6 @@ class DataValidator:
         Args:
             risks_df: Risks DataFrame
             controls_df: Controls DataFrame
-            questions_df: Questions DataFrame
 
         Returns:
             Dictionary containing consistency validation results
@@ -175,7 +167,6 @@ class DataValidator:
         # Check for data quality issues
         results["statistics"]["risks"] = self._get_data_quality_stats(risks_df, "risk")
         results["statistics"]["controls"] = self._get_data_quality_stats(controls_df, "control")
-        results["statistics"]["questions"] = self._get_data_quality_stats(questions_df, "question")
 
         return results
 

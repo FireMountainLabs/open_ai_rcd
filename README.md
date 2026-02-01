@@ -22,7 +22,7 @@ Built as a microservices architecture with an interactive dashboard for explorin
 ```bash
 # 1. Clone the repository and navigate into it
 git clone <repository-url>
-cd AI_RCD
+cd open_ai_rcd
 
 # 2. Build the Docker images
 docker compose build
