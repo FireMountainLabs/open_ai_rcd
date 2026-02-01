@@ -1,0 +1,8 @@
+# Database Service specific requirements
+# Extends base.txt
+
+# Additional database utilities
+# alembic==1.12.1
+
+# Additional validation
+# email-validator==2.1.0

@@ -1,0 +1,64 @@
+# Database Service Configuration
+# Central configuration file for the AIML Database Service
+
+# Server Configuration
+server:
+  host: "${API_HOST:-0.0.0.0}"
+  port: "${DATABASE_PORT}"
+  debug: "${DEBUG:-false}"
+  base_url: "${BASE_URL}"
+
+# Database Configuration
+database:
+  path: "${DB_PATH:-aiml_data.db}"
+  timeout: "${DB_TIMEOUT:-30}"
+  check_same_thread: false
+  
+  # Required tables for validation
+  required_tables:
+    - "risks"
+    - "controls"
+    - "definitions"
+    - "risk_control_mapping"
+    - "file_metadata"
+
+# API Configuration
+api:
+  limits:
+    default_limit: 100
+    max_limit: 1000
+    max_relationships_limit: 5000
+    search_limit: 200
+  
+  # Request timeout
+  request_timeout: 30
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "${LOG_FILE:-/app/logs/database-service.log}"
+
+# Health Check Configuration
+health_check:
+  interval: 30
+  timeout: 10
+  retries: 3
+  start_period: 10
+
+# Performance Configuration
+performance:
+  # Connection pooling
+  max_connections: 10
+  connection_timeout: 30
+  
+  # Query optimization
+  enable_query_cache: true
+  cache_ttl: 300  # seconds
+
+# CORS Configuration
+cors:
+  allow_origins: ["*"]  # Configure appropriately for production
+  allow_credentials: true
+  allow_methods: ["*"]
+  allow_headers: ["*"]

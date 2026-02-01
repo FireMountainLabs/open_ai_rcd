@@ -1,0 +1,6 @@
+# Dashboard Service Requirements
+# Extends requirements/base.txt - only service-specific dependencies here
+# All core dependencies (flask, flask-cors, requests, pyyaml, gunicorn, etc.)
+# are inherited from the base image
+
+# No additional dependencies required for dashboard service

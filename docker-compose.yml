@@ -1,0 +1,98 @@
+# Production-ready Docker Compose for AI_RCD
+# Features: Healthchecks, Internal Networking, and Automatic Builds
+
+services:
+  # Base image - built locally, used by all services
+  base:
+    build:
+      context: .
+      dockerfile: ./base/Dockerfile
+    image: aircd-base:latest
+
+  # Data Processing Service - Excel extraction and DB generation
+  data-processing-service:
+    build:
+      context: .
+      dockerfile: ./data-processing-service/Dockerfile
+    image: aircd-data-processing-service:latest
+    container_name: aiml-data-processing-service
+    environment:
+      - DATA_DIR=/app
+      - OUTPUT_DIR=/app/data
+      - CONFIG_FILE=/app/config/data_processing.yaml
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./source_docs:/app/source_docs
+      - .:/app/data
+      - ./config:/app/config
+      - ./shared-services/common_config.py:/app/common_config.py
+    # Automatically run if DB is missing. Graceful failure to allow database-service to attempt start.
+    entrypoint: [ "sh", "-c", "if [ ! -f /app/data/aiml_data.db ]; then python app.py || echo 'Warning: Data processing failed, but continuing...'; else echo 'Database already exists, skipping generation.'; fi" ]
+
+  # Database Service - Provides data API
+  database-service:
+    build:
+      context: .
+      dockerfile: ./database-service/Dockerfile
+    image: aircd-database-service:latest
+    container_name: aiml-database-service
+    depends_on:
+      data-processing-service:
+        condition: service_completed_successfully
+    ports:
+      - "${DATABASE_PORT:-5001}:${DATABASE_PORT:-5001}"
+    environment:
+      - DB_PATH=/data/aiml_data.db
+      - DATABASE_PORT=${DATABASE_PORT:-5001}
+      - API_HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - .:/data
+      - ./shared-services/common_config.py:/app/common_config.py
+      - ./config:/app/config
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${DATABASE_PORT:-5001}/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - aiml-network
+
+  # Dashboard Service - Main UI and visualization
+  dashboard-service:
+    build:
+      context: .
+      dockerfile: ./dashboard-service/Dockerfile
+    image: aircd-dashboard-service:latest
+    container_name: aiml-dashboard-service
+    ports:
+      - "${DASHBOARD_PORT:-5002}:${DASHBOARD_PORT:-5002}"
+    environment:
+      - DATABASE_URL=http://database-service:${DATABASE_PORT:-5001}
+      - PORT=${DASHBOARD_PORT:-5002}
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./shared-services/common_config.py:/app/common_config.py
+      - ./config:/app/config
+    depends_on:
+      database-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${DASHBOARD_PORT:-5002}/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - aiml-network
+
+networks:
+  aiml-network:
+    driver: bridge
+
+volumes:
+  aiml-data:
+    external: false
+    driver: local

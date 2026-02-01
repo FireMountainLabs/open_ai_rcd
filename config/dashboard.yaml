@@ -1,0 +1,46 @@
+# Dashboard Service Configuration
+# Extends common.yaml
+
+# Server Configuration
+server:
+  host: "${DASHBOARD_HOST:-0.0.0.0}"
+  port: "${services.dashboard.port}"
+  debug: "${DEBUG:-false}"
+  base_url: "${BASE_URL:-${services.dashboard.external_url}}"
+
+# Database Service Configuration
+database_service:
+  url: "${DATABASE_URL:-${services.database.internal_url}}"
+  timeout: 30
+  retry_attempts: 3
+  retry_delay: 1  # seconds
+
+# Frontend Configuration
+frontend:
+  # Visualization settings
+  visualization:
+    max_items: 50
+    animation_duration: 750  # milliseconds
+    chart_height: 200        # pixels
+    chart_width: 600         # pixels
+  
+  # UI settings
+  ui:
+    theme: "light"
+    show_legends: true
+    max_table_rows: 1000
+    tooltip_delay: 500  # milliseconds
+  
+  # External dependencies
+  dependencies:
+    d3_js: "https://d3js.org/d3.v7.min.js"
+    d3_sankey: "https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"
+
+# Performance Configuration
+performance:
+  # Caching
+  enable_response_cache: true
+  cache_ttl: 300  # seconds
+  
+  # Connection settings
+  keep_alive: true

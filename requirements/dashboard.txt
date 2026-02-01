@@ -1,0 +1,8 @@
+# Dashboard Service specific requirements
+# Extends base.txt
+
+# Additional Flask extensions
+# flask-restful==0.3.10
+
+# Additional utilities
+# python-dotenv==1.0.0

@@ -1,0 +1,63 @@
+# Data Processing Service Configuration
+# Extends common.yaml
+
+# Data source files and their configurations
+data_sources:
+  risks:
+    file: "${RISKS_FILE:-source_docs/AIML_RISK_TAXONOMY_V6.xlsx}"
+    description: "AI Risk Taxonomy with risk definitions and descriptions"
+    columns:
+      id: "ID"
+      title: "Risk"
+      description: "Risk Description"
+  
+  controls:
+    file: "${CONTROLS_FILE:-source_docs/AIML_CONTROL_FRAMEWORK_V4.xlsx}"
+    description: "AI Control Framework with control domains and purposes"
+    columns:
+      id: "Code"
+      title: "Purpose"
+      description: "Purpose"
+  
+  # Questions file is missing in current worktree, skipping for now
+  # questions:
+  #   file: "${QUESTIONS_FILE:-source_docs/AIML_INTERVIEW_QUESTIONS_V1.xlsx}"
+  #   description: "Interview questions for risk assessment across multiple sheets"
+  #   sheets: "all"
+  #   columns:
+  #     id: "Question Number"
+  #     text: "Question Text"
+  #     category: "Category"
+  #     topic: "Topic"
+  #     risk_mapping: "AIML_RISK_TAXONOMY"
+  #     control_mapping: "AIML_CONTROL"
+  
+  definitions:
+    file: "${DEFINITIONS_FILE:-source_docs/AI_Definitions_and_Taxonomy_V1.xlsx}"
+    description: "AI/ML terminology definitions and taxonomy"
+    columns:
+      id: "Term"
+      title: "Term"
+      description: "Definition"
+      category: "Category"
+      source: "Source"
+
+# Database configuration
+database:
+  file: "${DB_PATH:-aiml_data.db}"
+  description: "SQLite database containing extracted and processed data"
+
+# Extraction settings
+extraction:
+  default_mode: "resilient"
+  auto_detect_schema: true
+  validate_files: true
+  remove_duplicates: true
+  normalize_ids: true
+  clean_data: true
+  log_level: "${LOG_LEVEL:-INFO}"
+
+# Output settings
+output:
+  print_summary: true
+  collect_metadata: true

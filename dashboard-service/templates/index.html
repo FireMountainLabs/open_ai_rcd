@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Risks, Controls, and Definitions Viewer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tufte.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Configuration from dashboard_config.yaml -->
+    <script>
+        window.DashboardConfig = {
+            visualization: JSON.parse(document.body.dataset.vizConfig),
+            ui: JSON.parse(document.body.dataset.uiConfig),
+            search: JSON.parse(document.body.dataset.searchConfig)
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/config/dashboard-config.js') }}"></script>
+    <!-- Modular Dashboard Architecture -->
+    <script src="{{ url_for('static', filename='js/modules/BaseModule.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DataManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DefinitionHoverManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardCore.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/StatusMessageManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/SaveStatusManager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardSearch.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardRiskViews.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardGapsView.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardNetwork.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardControls.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/modules/DashboardEventHandlers.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <style>
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-left: 2rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-role.admin {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .user-role.user {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .logout-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .logout-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .logout-button:active {
+            transform: translateY(0);
+        }
+
+        .admin-link {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .admin-link:hover {
+            background: #218838;
+        }
+
+        .change-password-link {
+            background: #17a2b8;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+
+        .change-password-link:hover {
+            background: #138496;
+        }
+
+        @media (max-width: 768px) {
+            .header-top {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .user-menu {
+                margin-left: 0;
+                margin-top: 1rem;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Animation for metric change indicators */
+        @keyframes slideInFadeOut {
+            0% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            10% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            90% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        .metric-change-indicator {
+            animation: slideInFadeOut 2s ease-out forwards;
+        }
+
+        /* Ensure metric values are black at rest */
+        .metric-value {
+            color: #212529 !important;
+        }
+    </style>
+</head>
+
+<body data-viz-config='{{ viz_config | tojson | safe if viz_config else "{}" }}'
+    data-ui-config='{{ ui_config | tojson | safe if ui_config else "{}" }}'
+    data-search-config='{{ search_config | tojson | safe if search_config else "{}" }}'>
+    <div class="container">
+        <!-- Header following Tufte's principles -->
+        <header class="main-header">
+            <div class="header-top">
+                <div class="header-title">
+                    <h1>AI Risks, Controls, and Definitions Viewer</h1>
+                    <p class="subtitle">AI Risk and Control Relationships</p>
+                </div>
+                {% if enable_auth and user %}
+                <div class="user-menu">
+                    <div class="user-info">
+                        <span class="user-name">{{ user.username }}</span>
+                        {% if user.is_admin %}
+                        <span class="user-role admin">Admin</span>
+                        {% else %}
+                        <span class="user-role user">User</span>
+                        {% endif %}
+                    </div>
+                    {% if user.is_admin %}
+                    <a href="/admin" class="admin-link">Admin Panel</a>
+                    {% endif %}
+                    <button class="logout-button" onclick="logout()">Logout</button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="data-status">
+                <h3 class="sources-header">
+                    <span class="sources-toggle-icon">▼</span>
+                    Sources
+                </h3>
+                <div class="status-items-container">
+                    <div class="status-item">
+                        <span class="status-label">Risks:</span>
+                        <span id="risksLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="risksVersion">-</span>)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Controls:</span>
+                        <span id="controlsLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="controlsVersion">-</span>)</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Definitions:</span>
+                        <span id="definitionsLastUpdated" class="status-time">-</span>
+                        <span class="status-version">(<span id="definitionsVersion">-</span>)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search risks, controls, or questions..."
+                    class="search-input">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </header>
+
+        <!-- Navigation tabs -->
+        <nav class="tab-navigation">
+            <button class="tab-button active" data-tab="risks">Risks</button>
+            <button class="tab-button" data-tab="controls">Controls</button>
+            <button class="tab-button" data-tab="definitions">Definitions</button>
+        </nav>
+
+        <!-- Risks Tab -->
+        <div id="risks" class="tab-content active">
+            <section class="data-table">
+                <h2>Risk Inventory</h2>
+                <div class="table-controls">
+                </div>
+                <div class="table-container">
+                    <table id="risksTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Risk ID</th>
+                                <th>Title</th>
+                                <th>Controls</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Controls Tab -->
+        <div id="controls" class="tab-content">
+            <section class="data-table">
+                <h2>Control Framework</h2>
+                <div class="table-controls">
+                </div>
+                <div class="table-container">
+                    <table id="controlsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Control ID</th>
+                                <th>Title</th>
+                                <th>Domain</th>
+                                <th>Risks</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <!-- Definitions Tab -->
+        <div id="definitions" class="tab-content">
+            <section class="data-table">
+                <h2>Definitions & Terminology</h2>
+                <div class="table-controls">
+                    <select id="definitionCategoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div class="alphabet-filter">
+                    <span class="filter-label">Filter by letter:</span>
+                    <div class="letter-links">
+                        <a href="#" class="letter-link active" data-letter="">All</a>
+                        <a href="#" class="letter-link" data-letter="A">A</a>
+                        <a href="#" class="letter-link" data-letter="B">B</a>
+                        <a href="#" class="letter-link" data-letter="C">C</a>
+                        <a href="#" class="letter-link" data-letter="D">D</a>
+                        <a href="#" class="letter-link" data-letter="E">E</a>
+                        <a href="#" class="letter-link" data-letter="F">F</a>
+                        <a href="#" class="letter-link" data-letter="G">G</a>
+                        <a href="#" class="letter-link" data-letter="H">H</a>
+                        <a href="#" class="letter-link" data-letter="I">I</a>
+                        <a href="#" class="letter-link" data-letter="J">J</a>
+                        <a href="#" class="letter-link" data-letter="K">K</a>
+                        <a href="#" class="letter-link" data-letter="L">L</a>
+                        <a href="#" class="letter-link" data-letter="M">M</a>
+                        <a href="#" class="letter-link" data-letter="N">N</a>
+                        <a href="#" class="letter-link" data-letter="O">O</a>
+                        <a href="#" class="letter-link" data-letter="P">P</a>
+                        <a href="#" class="letter-link" data-letter="Q">Q</a>
+                        <a href="#" class="letter-link" data-letter="R">R</a>
+                        <a href="#" class="letter-link" data-letter="S">S</a>
+                        <a href="#" class="letter-link" data-letter="T">T</a>
+                        <a href="#" class="letter-link" data-letter="U">U</a>
+                        <a href="#" class="letter-link" data-letter="V">V</a>
+                        <a href="#" class="letter-link" data-letter="W">W</a>
+                        <a href="#" class="letter-link" data-letter="X">X</a>
+                        <a href="#" class="letter-link" data-letter="Y">Y</a>
+                        <a href="#" class="letter-link" data-letter="Z">Z</a>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="definitionsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Term</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+
+        <!-- Detail Modal -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="modalBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    console.error('Logout failed');
+                    // Still redirect to login even if logout fails
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Still redirect to login even if logout fails
+                window.location.href = '/login';
+            }
+        }
+    </script>
+</body>
+
+</html>

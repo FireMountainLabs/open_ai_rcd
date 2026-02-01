@@ -1,0 +1,78 @@
+# Common Configuration for AI_RCD
+# Shared configuration values across all microservices
+
+# Network Configuration
+network:
+  name: "${NETWORK_NAME:-aiml-network}"
+  driver: "bridge"
+
+# Logging Configuration
+logging:
+  level: "${LOG_LEVEL:-INFO}"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_pattern: "/app/logs/{service}.log"
+
+# Health Check Configuration
+health_check:
+  interval: "${HEALTH_CHECK_INTERVAL:-30}"
+  timeout: "${HEALTH_CHECK_TIMEOUT:-10}"
+  retries: "${HEALTH_CHECK_RETRIES:-3}"
+  start_period: "${HEALTH_CHECK_START_PERIOD:-10}"
+
+# Performance Configuration
+performance:
+  max_connections: 10
+  connection_timeout: 30
+  enable_caching: true
+  cache_ttl: 300  # seconds
+
+# Service Definitions
+services:
+  database:
+    name: "database-service"
+    port: "${DATABASE_PORT:-5001}"
+    internal_url: "http://database-service:${services.database.port}"
+  dashboard:
+    name: "dashboard-service"
+    port: "${DASHBOARD_PORT:-5002}"
+    internal_url: "http://dashboard-service:${services.dashboard.port}"
+    external_url: "http://localhost:${services.dashboard.port}"
+  data_processing:
+    name: "data-processing-service"
+    port: "${DATA_PROCESSING_PORT:-5003}"
+    internal_url: "http://data-processing-service:${services.data_processing.port}"
+
+# CORS Configuration
+cors:
+  # Internal services
+  internal_origins: 
+    - "${services.dashboard.internal_url}"
+    - "${services.data_processing.internal_url}"
+    - "${services.database.internal_url}"
+  # External origins (browser)
+  external_origins: 
+    - "${services.dashboard.external_url}"
+  allow_credentials: true
+  allow_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  allow_headers: ["Content-Type"]
+
+# Legacy aliases for backward compatibility
+ports:
+  database_service: "${services.database.port}"
+  dashboard_service: "${services.dashboard.port}"
+  data_processing_service: "${services.data_processing.port}"
+
+service_urls:
+  dashboard: "${services.dashboard.internal_url}"
+  data_processing: "${services.data_processing.internal_url}"
+  database: "${services.database.internal_url}"
+
+# API Configuration
+api:
+  limits:
+    default_limit: 100
+    max_limit: 1000
+    search_limit: 200
+  timeouts:
+    request_timeout: 30
+    search_timeout: 5000  # milliseconds
