@@ -1,6 +1,12 @@
-# AI Risks, Controls, and Definitions Viewer (AI_RCD)
+# Open AI Risk, Controls & Definitions (Open AI_RCD)
 
-A microservices-based platform for AI/ML risk management, providing data visualization, risk assessment, and control framework management.
+An open-source AI/ML risk management platform featuring:
+
+- **108 AI Risks** - Comprehensive taxonomy covering model, data, operational, and governance risks
+- **150+ Controls** - Organized across 10 domains (AI Governance, Data Management, Model Development, Security, etc.)
+- **400+ Definitions** - Standardized AI/ML terminology and concepts
+
+Built as a microservices architecture with an interactive dashboard for exploring risk-control relationships, coverage analysis, and gap identification.
 
 ## 🚀 Quick Start
 
