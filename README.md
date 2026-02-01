@@ -1,4 +1,4 @@
-# Open AI Risk, Controls & Definitions (Open AI_RCD)
+# Open AI Risk, Controls & Definitions (Open AI RCD)
 
 An open-source AI/ML risk management platform featuring:
 
